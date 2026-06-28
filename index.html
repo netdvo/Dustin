@@ -619,7 +619,9 @@ async function runBacktest(){
   const bank=parseFloat(document.getElementById('btBank').value)||10000;
   const useKelly=document.getElementById('btKelly').checked;
   const stat=document.getElementById('btStat'),res=document.getElementById('btRes');
-  stat.textContent=`Fetching ${days} days OHLCV…`;res.innerHTML='';
+  stat.textContent='Waiting 10 seconds for rate limit to clear…';res.innerHTML='';
+  await new Promise(r=>setTimeout(r,10000));
+  stat.textContent=`Fetching ${days} days OHLCV…`;
   try{
     const r=await safeFetch(`https://api.coingecko.com/api/v3/coins/${cgId}/ohlc?vs_currency=usd&days=${days}`);
     if(!r||!r.ok)throw new Error('Failed');
