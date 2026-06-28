@@ -98,14 +98,14 @@ canvas{display:block;width:100%;background:var(--bg)}
 
 <div class="topbar">
   <div>
-    <div class="ltxt">Fable99 · CoinGecko Prices · Kraken Candles · Kelly · MTF · Auto</div>
+    <div class="ltxt">Fable99 · CoinGecko Live · RSI+MACD+BB · Kelly · MTF · Auto</div>
     <div class="lname">CLAUDE FABLE 5 · <span>MIROFISH</span> <span class="bdg bpu" style="font-size:9px;vertical-align:middle">COMPLETE</span></div>
   </div>
   <div class="badges">
     <span class="bdg bg pulse">● LIVE</span>
     <span class="bdg bo" id="cgBadge">CG…</span>
-    <span class="bdg btl" id="krBadge">KRAKEN…</span>
     <span class="bdg bpu">KELLY</span>
+    <span class="bdg btl">MTF</span>
     <span class="bdg br" id="alertBadge" style="cursor:pointer" onclick="gt('alerts')">ALERTS 0</span>
     <span id="clk" style="font-size:11px;color:var(--m)">--:--:-- UTC</span>
   </div>
@@ -141,7 +141,7 @@ canvas{display:block;width:100%;background:var(--bg)}
         <span id="btcC" style="font-size:13px;font-weight:700">--</span>
         <span id="btcV" style="font-size:10px;color:var(--m)">--</span>
       </div>
-      <div id="indPanel"><span style="color:var(--m);font-size:10px">Scanning via Kraken…</span></div>
+      <div id="indPanel"><span style="color:var(--m);font-size:10px">Scanning…</span></div>
     </div>
     <div class="pn"><div class="pl">Best signal now</div><div id="topSig"><div class="empty">Scanning…</div></div></div>
   </div>
@@ -150,8 +150,8 @@ canvas{display:block;width:100%;background:var(--bg)}
 
 <div id="tab-signals" style="display:none">
   <div class="pn" style="margin-bottom:10px">
-    <div class="pl">MTF signals · Kraken OHLCV · 15m + 1h + 4h · RSI + MACD + BB + Volume</div>
-    <div id="sigList"><div class="empty">Fetching Kraken candle data…</div></div>
+    <div class="pl">MTF signals · CoinGecko OHLCV · RSI + MACD + BB + Volume</div>
+    <div id="sigList"><div class="empty">Loading…</div></div>
   </div>
   <div class="pn">
     <div class="pl">Signal guide</div>
@@ -159,7 +159,6 @@ canvas{display:block;width:100%;background:var(--bg)}
       <span><span class="ind ib">RSI &lt;30</span> Oversold</span>
       <span><span class="ind ib">MACD ▲</span> Bullish cross</span>
       <span><span class="ind ib">BB below</span> Below lower band</span>
-      <span><span class="ind ib">Vol 150%+</span> Volume spike</span>
       <span><b style="color:var(--o)">82%+ conf + 3/3 TF = strongest</b></span>
     </div>
   </div>
@@ -192,22 +191,21 @@ canvas{display:block;width:100%;background:var(--bg)}
 
 <div id="tab-backtest" style="display:none">
   <div class="pn" style="margin-bottom:10px">
-    <div class="pl">Backtester · Kraken OHLCV · RSI + MACD + BB + Volume + Kelly</div>
+    <div class="pl">Backtester · CoinGecko OHLCV · RSI + MACD + BB + Kelly</div>
     <div class="irow">
       <select class="inp" id="btSym" style="width:110px">
-        <option value="XBTUSD">BTC</option>
-        <option value="ETHUSD">ETH</option>
-        <option value="SOLUSD">SOL</option>
-        <option value="XDGUSD">DOGE</option>
+        <option value="bitcoin">BTC</option>
+        <option value="ethereum">ETH</option>
+        <option value="solana">SOL</option>
+        <option value="dogecoin">DOGE</option>
       </select>
-      <select class="inp" id="btInt" style="width:90px">
-        <option value="60">1h</option>
-        <option value="240">4h</option>
-        <option value="1440">1d</option>
-        <option value="15">15m</option>
+      <select class="inp" id="btDays" style="width:90px">
+        <option value="30">30 days</option>
+        <option value="60">60 days</option>
+        <option value="90">90 days</option>
       </select>
-      <input class="inp" id="btSize" type="number" value="100" style="width:80px" placeholder="$size"/>
-      <input class="inp" id="btBank" type="number" value="10000" style="width:90px" placeholder="Bankroll"/>
+      <input class="inp" id="btSize" type="number" value="100" style="width:80px"/>
+      <input class="inp" id="btBank" type="number" value="10000" style="width:90px"/>
       <label style="font-size:10px;color:var(--m);display:flex;align-items:center;gap:5px"><input type="checkbox" id="btKelly" checked/> Kelly</label>
       <button class="btn btnBl" onclick="runBacktest()">▶ Run</button>
     </div>
@@ -221,7 +219,7 @@ canvas{display:block;width:100%;background:var(--bg)}
   <div class="pn" style="margin-bottom:10px">
     <div class="pl">Paper trades · 30-day tracking</div>
     <div class="irow">
-      <select class="inp" id="tSym" style="width:100px" onchange="fillEntry()">
+      <select class="inp" id="tSym" style="width:110px" onchange="fillEntry()">
         <optgroup label="Top Coins">
           <option value="BTC">BTC</option>
           <option value="ETH">ETH</option>
@@ -244,7 +242,6 @@ canvas{display:block;width:100%;background:var(--bg)}
         </optgroup>
         <optgroup label="Meme">
           <option value="SHIB">SHIB</option>
-          <option value="DOGE">DOGE</option>
           <option value="PEPE">PEPE</option>
         </optgroup>
         <optgroup label="Other">
@@ -252,14 +249,12 @@ canvas{display:block;width:100%;background:var(--bg)}
           <option value="BCH">BCH</option>
           <option value="TRX">TRX</option>
           <option value="FTM">FTM</option>
-          <option value="SAND">SAND</option>
-          <option value="MANA">MANA</option>
         </optgroup>
       </select>
-      <input class="inp" id="tEntry" type="number" placeholder="Entry $" style="width:90px"/>
-      <button class="btn btnBl" onclick="fillEntry()" style="font-size:10px">↺ Fill Price</button>
-      <input class="inp" id="tSize" type="number" value="100" style="width:80px"/>
+      <input class="inp" id="tEntry" type="number" placeholder="Entry $" style="width:100px"/>
+      <input class="inp" id="tSize" type="number" value="100" style="width:80px" placeholder="Size $"/>
       <input class="inp" id="tMult" type="number" value="5" style="width:70px" placeholder="×"/>
+      <button class="btn btnBl" onclick="fillEntry()" style="font-size:10px">↺ Price</button>
       <button class="btn btnG" onclick="addTrade('bull')">▲ Bull</button>
       <button class="btn btnR" onclick="addTrade('bear')">▼ Bear</button>
       <button class="btn btnO" onclick="closeAll()">Close All</button>
@@ -306,8 +301,11 @@ const S={
   signals:[],autoOn:true,alertsOn:true,autoLog:[],alertLog:[],
   dailyRisk:0,bankroll:10000,eqChart:null,btChart:null,
   ridgeDrawn:false,scanCount:0,
-  // Kraken pair names
-  krPairs:{BTC:'XBTUSD',ETH:'ETHUSD',SOL:'SOLUSD',BNB:'BNBUSD',DOGE:'XDGUSD'},
+  cgMap:{BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',DOGE:'dogecoin',
+    XRP:'ripple',ADA:'cardano',AVAX:'avalanche-2',LINK:'chainlink',DOT:'polkadot',
+    MATIC:'matic-network',SHIB:'shiba-inu',UNI:'uniswap',ATOM:'cosmos',
+    NEAR:'near',OP:'optimism',ARB:'arbitrum',LTC:'litecoin',BCH:'bitcoin-cash',
+    TRX:'tron',FTM:'fantom',PEPE:'pepe'},
   poly:[
     {name:'BTC above $70k by Jul 2026',yes:.34,model:.56},
     {name:'BTC above $80k by Aug 2026',yes:.18,model:.33},
@@ -331,20 +329,30 @@ function gt(t){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.nb')[{dash:0,signals:1,tail:2,kelly:3,backtest:4,trades:5,alerts:6,log:7}[t]].classList.add('active');
   if(t==='tail'){drawRidge();renderTail();}
-  if(t==='trades')fillEntry();
   if(t==='kelly')renderKellySigs();
   if(t==='alerts')renderAlerts();
   if(t==='log')renderLog();
+  if(t==='trades')fillEntry();
 }
 
-// CoinGecko for live prices
+// Safe fetch with timeout
+async function safeFetch(url,ms=8000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),ms);
+  try{const r=await fetch(url,{signal:ctrl.signal});clearTimeout(tid);return r;}
+  catch(e){clearTimeout(tid);return null;}
+}
+
+// CoinGecko prices
 async function fetchPrices(){
   try{
-    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,binancecoin,dogecoin,ripple,cardano,avalanche-2,chainlink,polkadot,matic-network,shiba-inu,uniswap,cosmos&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true');
-    if(!r.ok)throw new Error(r.status);
+    const ids=Object.values(S.cgMap).join(',');
+    const r=await safeFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true`);
+    if(!r||!r.ok)throw new Error('fail');
     const d=await r.json();
-    const map={bitcoin:'BTC',ethereum:'ETH',solana:'SOL',binancecoin:'BNB',dogecoin:'DOGE',ripple:'XRP',cardano:'ADA','avalanche-2':'AVAX',chainlink:'LINK',polkadot:'DOT','matic-network':'MATIC','shiba-inu':'SHIB',uniswap:'UNI',cosmos:'ATOM'};
-    Object.entries(d).forEach(([id,v])=>{S.prices[map[id]]={price:v.usd,chg:v.usd_24h_change||0,vol:v.usd_24h_vol||0};});
+    Object.entries(S.cgMap).forEach(([sym,id])=>{
+      if(d[id])S.prices[sym]={price:d[id].usd,chg:d[id].usd_24h_change||0,vol:d[id].usd_24h_vol||0};
+    });
     S.price=S.prices.BTC?.price||0;S.chg=S.prices.BTC?.chg||0;
     updatePriceDisplay();
     document.getElementById('cgBadge').textContent='CG LIVE';
@@ -360,100 +368,107 @@ function updatePriceDisplay(){
   document.getElementById('btcP').textContent='$'+btc.price.toLocaleString(undefined,{maximumFractionDigits:0});
   const ce=document.getElementById('btcC');ce.textContent=(btc.chg>=0?'+':'')+btc.chg.toFixed(2)+'%';ce.style.color=btc.chg>=0?'var(--g)':'var(--r)';
   document.getElementById('btcV').textContent='Vol $'+Math.round((btc.vol||0)/1e9)+'B';
-  document.getElementById('tickBar').innerHTML=['BTC','ETH','SOL','BNB','DOGE'].map(s=>{
+  document.getElementById('tickBar').innerHTML=['BTC','ETH','SOL','BNB','DOGE','XRP'].map(s=>{
     const d=S.prices[s];if(!d)return'';
-    const fmt=s==='BTC'?0:s==='DOGE'?5:2;
+    const fmt=s==='DOGE'||s==='XRP'?4:s==='BTC'?0:2;
     return`<span style="display:flex;gap:5px;align-items:center"><span style="color:var(--m);font-weight:600">${s}</span><span style="color:var(--t);font-weight:700">$${d.price.toLocaleString(undefined,{maximumFractionDigits:fmt})}</span><span style="color:${d.chg>=0?'var(--g)':'var(--r)'};font-weight:600">${d.chg>=0?'+':''}${d.chg.toFixed(2)}%</span></span>`;
   }).filter(Boolean).join('');
 }
 
-// Kraken OHLCV — no CORS, no rate limits, no API key
-async function fetchKrakenOHLCV(pair, interval=60, count=100){
+// Fill entry price from dropdown
+async function fillEntry(){
+  const sym=document.getElementById('tSym').value||'BTC';
+  if(S.prices[sym]&&S.prices[sym].price){
+    const p=S.prices[sym].price;
+    document.getElementById('tEntry').value=p<0.001?p.toFixed(8):p<1?p.toFixed(5):p<100?p.toFixed(2):Math.round(p);
+    return;
+  }
+  const cgId=S.cgMap[sym];if(!cgId)return;
   try{
-    const url=`https://api.kraken.com/0/public/OHLC?pair=${pair}&interval=${interval}&count=${count}`;
-    const r=await fetch(url);
-    if(!r.ok)throw new Error(r.status);
+    document.getElementById('tEntry').placeholder='Loading…';
+    const r=await safeFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+    if(!r||!r.ok)throw new Error();
     const d=await r.json();
-    if(d.error&&d.error.length)throw new Error(d.error[0]);
-    const key=Object.keys(d.result).find(k=>k!=='last');
-    const candles=d.result[key];
-    // Kraken format: [time, open, high, low, close, vwap, volume, count]
-    return{
-      closes:candles.map(c=>parseFloat(c[4])),
-      highs:candles.map(c=>parseFloat(c[2])),
-      lows:candles.map(c=>parseFloat(c[3])),
-      vols:candles.map(c=>parseFloat(c[6])),
-      opens:candles.map(c=>parseFloat(c[1]))
-    };
-  }catch(e){return null;}
+    const p=d[cgId]?.usd||0;
+    if(p){S.prices[sym]={price:p,chg:0,vol:0};
+    document.getElementById('tEntry').value=p<0.001?p.toFixed(8):p<1?p.toFixed(5):p<100?p.toFixed(2):Math.round(p);}
+  }catch(e){}
+  document.getElementById('tEntry').placeholder='Entry $';
 }
 
 // Indicators
 function calcRSI(c,p=14){if(c.length<p+1)return 50;let g=0,l=0;for(let i=c.length-p;i<c.length;i++){const d=c[i]-c[i-1];d>0?g+=d:l+=Math.abs(d);}const ag=g/p,al=l/p;return al===0?100:100-100/(1+(ag/al));}
 function calcMACD(c){function ema(a,p){let k=2/(p+1),e=a[0];for(let i=1;i<a.length;i++)e=a[i]*k+e*(1-k);return e;}if(c.length<26)return{bull:false,hist:0};const m=ema(c.slice(-12),12)-ema(c.slice(-26),26),pm=ema(c.slice(-13,-1),12)-ema(c.slice(-27,-1),26),sig=m*.222+pm*.778;return{bull:m>sig,hist:m-sig};}
 function calcBB(c,p=20){if(c.length<p)return{pos:'mid',pct:50};const sl=c.slice(-p),mid=sl.reduce((a,b)=>a+b)/p,std=Math.sqrt(sl.reduce((a,b)=>a+(b-mid)**2,0)/p),up=mid+2*std,lo=mid-2*std,last=c[c.length-1];return{pos:last<lo?'below':last>up?'above':'mid',pct:Math.round((last-lo)/(up-lo)*100)};}
-function calcVolR(v){if(v.length<21)return 100;const avg=v.slice(-21,-1).reduce((a,b)=>a+b)/20;return Math.round((v[v.length-1]/avg)*100);}
-function confScore(rsi,macd,bb,volR,dir,tfAlign){let s=35;if(dir==='bull'){if(rsi<30)s+=22;else if(rsi<40)s+=10;if(macd.bull)s+=16;if(bb.pos==='below')s+=16;if(volR>150)s+=Math.min(18,(volR-150)/5);}else{if(rsi>70)s+=22;else if(rsi>60)s+=10;if(!macd.bull)s+=16;if(bb.pos==='above')s+=16;if(volR>150)s+=Math.min(18,(volR-150)/5);}s+=tfAlign*5;return Math.min(98,Math.round(s));}
+function confScore(rsi,macd,bb,dir,tfAlign){let s=35;if(dir==='bull'){if(rsi<30)s+=22;else if(rsi<40)s+=10;if(macd.bull)s+=16;if(bb.pos==='below')s+=16;}else{if(rsi>70)s+=22;else if(rsi>60)s+=10;if(!macd.bull)s+=16;if(bb.pos==='above')s+=16;}s+=tfAlign*5;return Math.min(98,Math.round(s));}
 function kellyF(wr,odds){const w=wr/100,b=odds-1,k=(b*w-(1-w))/b;return Math.max(0,Math.min(.25,k));}
 
-async function scanSymbol(sym){
+// CoinGecko OHLCV for signals — sequential to avoid rate limits
+async function fetchOHLCV(cgId,days){
+  const r=await safeFetch(`https://api.coingecko.com/api/v3/coins/${cgId}/ohlc?vs_currency=usd&days=${days}`);
+  if(!r||!r.ok)return null;
+  const d=await r.json();
+  if(!Array.isArray(d)||!d.length)return null;
+  return{closes:d.map(c=>c[4])};
+}
+
+async function scanSymbol(sym,cgId){
   try{
-    const pair=S.krPairs[sym];
-    if(!pair)return null;
-    // Fetch 3 timeframes from Kraken
-    const [d15,d1h,d4h]=await Promise.all([
-      fetchKrakenOHLCV(pair,15,100),
-      fetchKrakenOHLCV(pair,60,100),
-      fetchKrakenOHLCV(pair,240,100),
-    ]);
-    if(!d1h)return null;
-    const r1h=calcRSI(d1h.closes),m1h=calcMACD(d1h.closes),b1h=calcBB(d1h.closes),v1h=calcVolR(d1h.vols);
-    const r15=d15?calcRSI(d15.closes):r1h,m15=d15?calcMACD(d15.closes):m1h;
-    const r4h=d4h?calcRSI(d4h.closes):r1h,m4h=d4h?calcMACD(d4h.closes):m1h;
-    const price=S.prices[sym]?.price||d1h.closes[d1h.closes.length-1];
-    const dir=r1h<50&&m1h.bull?'bull':'bear';
-    const tf15=dir==='bull'?(r15<50&&m15.bull):(r15>50&&!m15.bull);
-    const tf1h=dir==='bull'?(r1h<50&&m1h.bull):(r1h>50&&!m1h.bull);
-    const tf4h=dir==='bull'?(r4h<50&&m4h.bull):(r4h>50&&!m4h.bull);
-    const tfAlign=[tf15,tf1h,tf4h].filter(Boolean).length;
-    const indCount=[dir==='bull'?(r1h<40):(r1h>60),m1h.bull,b1h.pos!=='mid',v1h>150].filter(Boolean).length;
-    const conf=confScore(r1h,m1h,b1h,v1h,dir,tfAlign);
+    // Sequential fetches with small delays to avoid rate limiting
+    const d1=await fetchOHLCV(cgId,1);
+    await new Promise(r=>setTimeout(r,300));
+    const d7=await fetchOHLCV(cgId,7);
+    await new Promise(r=>setTimeout(r,300));
+    const d30=await fetchOHLCV(cgId,30);
+    if(!d1||!d7||!d30)return null;
+    const r1=calcRSI(d1.closes),m1=calcMACD(d1.closes),b1=calcBB(d1.closes);
+    const r7=calcRSI(d7.closes),m7=calcMACD(d7.closes),b7=calcBB(d7.closes);
+    const r30=calcRSI(d30.closes),m30=calcMACD(d30.closes);
+    const price=S.prices[sym]?.price||d7.closes[d7.closes.length-1];
+    const dir=r7<50&&m7.bull?'bull':'bear';
+    const tf1=dir==='bull'?(r1<50&&m1.bull):(r1>50&&!m1.bull);
+    const tf2=dir==='bull'?(r7<50&&m7.bull):(r7>50&&!m7.bull);
+    const tf3=dir==='bull'?(r30<50&&m30.bull):(r30>50&&!m30.bull);
+    const tfAlign=[tf1,tf2,tf3].filter(Boolean).length;
+    const indCount=[dir==='bull'?(r7<40):(r7>60),m7.bull,b7.pos!=='mid'].filter(Boolean).length;
+    const conf=confScore(r7,m7,b7,dir,tfAlign);
     const odds=parseFloat((1.8+Math.random()*4).toFixed(1));
     const kpct=kellyF(conf,odds);
-    document.getElementById('krBadge').textContent='KRAKEN LIVE';
-    document.getElementById('krBadge').className='bdg btl';
-    return{sym,dir,conf,indCount,tfAlign,tf15,tf1h,tf4h,
-      rsi:r1h.toFixed(1),macd:m1h,bb:b1h,volR:v1h,
-      price,odds,kpct:Math.round(kpct*100),ksize:Math.round(S.bankroll*kpct)};
+    return{sym,dir,conf,indCount,tfAlign,tf1,tf2,tf3,rsi:r7.toFixed(1),macd:m7,bb:b7,price,odds,kpct:Math.round(kpct*100),ksize:Math.round(S.bankroll*kpct)};
   }catch(e){return null;}
 }
 
 async function scanAll(){
-  const syms=['BTC','ETH','SOL','DOGE'];
-  document.getElementById('sigList').innerHTML='<div class="empty">Scanning via Kraken…</div>';
-  const results=await Promise.all(syms.map(scanSymbol));
-  S.signals=results.filter(Boolean).sort((a,b)=>b.conf-a.conf);
+  const pairs=[['BTC','bitcoin'],['ETH','ethereum'],['SOL','solana'],['DOGE','dogecoin']];
+  document.getElementById('sigList').innerHTML='<div class="empty">Scanning… (takes ~20 seconds)</div>';
+  S.signals=[];
+  // Scan one at a time to avoid rate limits
+  for(const [sym,cgId] of pairs){
+    const result=await scanSymbol(sym,cgId);
+    if(result)S.signals.push(result);
+    await new Promise(r=>setTimeout(r,500));
+  }
+  S.signals.sort((a,b)=>b.conf-a.conf);
   S.scanCount++;
   renderSignals();fireAlerts();autoExec();updateDash();
 }
 
 function renderSignals(){
   const el=document.getElementById('sigList');if(!el)return;
-  if(!S.signals.length){el.innerHTML='<div class="empty">No strong signals right now — market is neutral. Rescan in 5 min.</div>';return;}
+  if(!S.signals.length){el.innerHTML='<div class="empty">No signals — market neutral. Auto-rescan in 10 min.</div>';return;}
   el.innerHTML=S.signals.map(s=>`
     <div class="sc ${s.dir}${s.conf>82?' hot':''}">
       <div class="sct">
         <span class="scn" style="color:${s.dir==='bull'?'var(--g)':'var(--r)'}">${s.sym}/USD</span>
-        <span class="scc ${s.conf>=82?'ch':s.conf>=65?'cm':'cl'}">${s.conf}% · ${s.tfAlign}/3 TF · ${s.indCount}/4 IND</span>
+        <span class="scc ${s.conf>=82?'ch':s.conf>=65?'cm':'cl'}">${s.conf}% · ${s.tfAlign}/3 TF · ${s.indCount}/3 IND</span>
       </div>
       <div class="tf-row">
-        <span class="tf-chip ${s.tf15?s.dir==='bull'?'tf-bull':'tf-bear':'tf-neu'}">15m ${s.tf15?'✓':'✗'}</span>
-        <span class="tf-chip ${s.tf1h?s.dir==='bull'?'tf-bull':'tf-bear':'tf-neu'}">1h ${s.tf1h?'✓':'✗'}</span>
-        <span class="tf-chip ${s.tf4h?s.dir==='bull'?'tf-bull':'tf-bear':'tf-neu'}">4h ${s.tf4h?'✓':'✗'}</span>
+        <span class="tf-chip ${s.tf1?s.dir==='bull'?'tf-bull':'tf-bear':'tf-neu'}">Short ${s.tf1?'✓':'✗'}</span>
+        <span class="tf-chip ${s.tf2?s.dir==='bull'?'tf-bull':'tf-bear':'tf-neu'}">Mid ${s.tf2?'✓':'✗'}</span>
+        <span class="tf-chip ${s.tf3?s.dir==='bull'?'tf-bull':'tf-bear':'tf-neu'}">Long ${s.tf3?'✓':'✗'}</span>
         <span class="ind ${parseFloat(s.rsi)<35||parseFloat(s.rsi)>65?'ib':'in'}">RSI ${s.rsi}</span>
         <span class="ind ${s.macd.bull?'ib':'ir'}">MACD ${s.macd.bull?'▲':'▼'}</span>
         <span class="ind ${s.bb.pos==='below'?'ib':s.bb.pos==='above'?'ir':'in'}">BB ${s.bb.pos}</span>
-        <span class="ind ${s.volR>150?'ib':'in'}">Vol ${s.volR}%</span>
       </div>
       <div class="scm" style="margin-top:5px">
         <span>$${s.price.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
@@ -472,7 +487,6 @@ function renderSignals(){
       <div class="row"><span class="rk">RSI</span><span class="rv">${top.rsi}</span></div>
       <div class="row"><span class="rk">MACD</span><span class="rv" style="color:${top.macd.bull?'var(--g)':'var(--r)'}">${top.macd.bull?'Bullish':'Bearish'}</span></div>
       <div class="row"><span class="rk">BB</span><span class="rv">${top.bb.pos}</span></div>
-      <div class="row"><span class="rk">Volume</span><span class="rv pc">${top.volR}%</span></div>
       <div class="row"><span class="rk">Kelly</span><span class="rv tc">$${top.ksize} (${top.kpct}%)</span></div>`;
     document.getElementById('dHot').textContent=S.signals.filter(s=>s.conf>82&&s.tfAlign>=2).length;
     document.getElementById('dMTF').textContent=S.signals.filter(s=>s.tfAlign===3).length+' triple-TF';
@@ -481,9 +495,8 @@ function renderSignals(){
         <span class="ind ${parseFloat(top.rsi)<35||parseFloat(top.rsi)>65?'ib':'in'}">RSI ${top.rsi}</span>
         <span class="ind ${top.macd.bull?'ib':'ir'}">MACD ${top.macd.bull?'▲':'▼'}</span>
         <span class="ind ${top.bb.pos==='below'?'ib':top.bb.pos==='above'?'ir':'in'}">BB ${top.bb.pos}</span>
-        <span class="ind ${top.volR>150?'ib':'in'}">Vol ${top.volR}%</span>
       </div>
-      <div style="margin-top:5px;font-size:10px;color:var(--m)">${top.tfAlign}/3 TF · ${top.indCount}/4 IND · Scan #${S.scanCount}</div>`;
+      <div style="margin-top:5px;font-size:10px;color:var(--m)">${top.tfAlign}/3 TF · Scan #${S.scanCount}</div>`;
   }
 }
 
@@ -582,32 +595,6 @@ function updateDash(){
   updateEquity();
 }
 
-async function async fillEntry(){
-  const sym=document.getElementById('tSym').value||'BTC';
-  // Check if we already have the price
-  if(S.prices[sym]&&S.prices[sym].price){
-    const p=S.prices[sym].price;
-    document.getElementById('tEntry').value=p<0.01?p.toFixed(8):p<1?p.toFixed(5):p<100?p.toFixed(2):Math.round(p);
-    return;
-  }
-  // Fetch it live from CoinGecko
-  const cgMap={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',DOGE:'dogecoin',
-    XRP:'ripple',ADA:'cardano',AVAX:'avalanche-2',LINK:'chainlink',DOT:'polkadot',
-    MATIC:'matic-network',SHIB:'shiba-inu',UNI:'uniswap',ATOM:'cosmos',
-    LTC:'litecoin',BCH:'bitcoin-cash',TRX:'tron',NEAR:'near',FTM:'fantom',
-    SAND:'the-sandbox',MANA:'decentraland',APE:'apecoin',OP:'optimism',ARB:'arbitrum'};
-  const cgId=cgMap[sym];
-  if(!cgId){document.getElementById('tEntry').value='';return;}
-  try{
-    document.getElementById('tEntry').placeholder='Loading...';
-    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+cgId+'&vs_currencies=usd');
-    const d=await r.json();
-    const p=d[cgId]?.usd||0;
-    S.prices[sym]={price:p,chg:0,vol:0};
-    document.getElementById('tEntry').value=p<0.01?p.toFixed(8):p<1?p.toFixed(5):p<100?p.toFixed(2):Math.round(p);
-    document.getElementById('tEntry').placeholder='Entry $';
-  }catch(e){document.getElementById('tEntry').placeholder='Entry $';}
-}
 function addTrade(dir){
   const sym=document.getElementById('tSym').value||'BTC';
   if(!document.getElementById('tEntry').value)fillEntry();
@@ -621,30 +608,31 @@ function closeAll(){S.trades.forEach(t=>{const won=Math.random()>.30;t.pnl=won?p
 function resetTrades(){S.trades=[];S.closed=[];S.wins=0;S.losses=0;S.pnl=0;S.equity=[0];S.dailyRisk=0;if(S.eqChart){S.eqChart.destroy();S.eqChart=null;}renderTrades();updateDash();}
 function renderTrades(){
   const oe=document.getElementById('openT'),ce=document.getElementById('closedT');if(!oe||!ce)return;
-  oe.innerHTML=S.trades.length?S.trades.map(t=>`<div class="tr"><span class="tsym">${t.sym}</span><span class="tdir ${t.dir==='bull'?'db':'dr'}">${t.dir.toUpperCase()}</span><span style="color:var(--m);font-size:9px">$${Math.round(t.size)} ×${t.mult}</span>${t.auto?'<span style="font-size:8px;color:var(--pu)">AUTO</span>':''}<span class="tpnl oc">OPEN</span></div>`).join(''):'<div class="empty">None.</div>';
-  ce.innerHTML=S.closed.length?S.closed.slice(0,20).map(t=>`<div class="tr"><span class="tsym">${t.sym}</span><span class="tdir ${t.dir==='bull'?'db':'dr'}">${t.dir.toUpperCase()}</span><span style="color:var(--m);font-size:9px">×${t.mult}</span><span class="tpnl" style="color:${t.pnl>=0?'var(--g)':'var(--r)'}">${t.pnl>=0?'+':''}$${Math.round(t.pnl)}</span><span style="font-size:9px;color:${t.result==='WIN'?'var(--g)':'var(--r)'}">${t.result}</span></div>`).join(''):'<div class="empty">None yet.</div>';
+  oe.innerHTML=S.trades.length?S.trades.map(t=>`<div class="tr"><span class="tsym">${t.sym}</span><span class="tdir ${t.dir==='bull'?'db':'dr'}">${t.dir.toUpperCase()}</span><span style="color:var(--m);font-size:9px">$${Math.round(t.entry)} · $${Math.round(t.size)} ×${t.mult}</span>${t.auto?'<span style="font-size:8px;color:var(--pu)">AUTO</span>':''}<span class="tpnl oc">OPEN</span></div>`).join(''):'<div class="empty">None.</div>';
+  ce.innerHTML=S.closed.length?S.closed.slice(0,20).map(t=>`<div class="tr"><span class="tsym">${t.sym}</span><span class="tdir ${t.dir==='bull'?'db':'dr'}">${t.dir.toUpperCase()}</span><span style="color:var(--m);font-size:9px">$${Math.round(t.entry)} ×${t.mult}</span><span class="tpnl" style="color:${t.pnl>=0?'var(--g)':'var(--r)'}">${t.pnl>=0?'+':''}$${Math.round(t.pnl)}</span><span style="font-size:9px;color:${t.result==='WIN'?'var(--g)':'var(--r)'}">${t.result}</span></div>`).join(''):'<div class="empty">None yet.</div>';
 }
 
 async function runBacktest(){
-  const pair=document.getElementById('btSym').value;
-  const interval=document.getElementById('btInt').value;
+  const cgId=document.getElementById('btSym').value;
+  const days=parseInt(document.getElementById('btDays').value);
   const size=parseFloat(document.getElementById('btSize').value)||100;
   const bank=parseFloat(document.getElementById('btBank').value)||10000;
   const useKelly=document.getElementById('btKelly').checked;
   const stat=document.getElementById('btStat'),res=document.getElementById('btRes');
-  stat.textContent=`Fetching Kraken OHLCV for ${pair}…`;res.innerHTML='';
+  stat.textContent=`Fetching ${days} days OHLCV…`;res.innerHTML='';
   try{
-    const data=await fetchKrakenOHLCV(pair,parseInt(interval),720);
-    if(!data)throw new Error('No data from Kraken');
-    const closes=data.closes,vols=data.vols;
-    stat.textContent=`${closes.length} candles loaded. Running strategy…`;
+    const r=await safeFetch(`https://api.coingecko.com/api/v3/coins/${cgId}/ohlc?vs_currency=usd&days=${days}`);
+    if(!r||!r.ok)throw new Error('Failed');
+    const k=await r.json();
+    if(!Array.isArray(k)||!k.length)throw new Error('No data');
+    const closes=k.map(c=>c[4]);
+    stat.textContent=`${closes.length} candles. Running…`;
     let wins=0,losses=0,total=0,equity=[0],curBank=bank,trades=[];
     for(let i=30;i<closes.length-1;i++){
       const rsi=calcRSI(closes.slice(0,i+1)),macd=calcMACD(closes.slice(0,i+1)),bb=calcBB(closes.slice(0,i+1));
-      const avgV=vols.slice(i-20,i).reduce((a,b)=>a+b)/20,volR=(vols[i]/avgV)*100;
       const dir=rsi<50&&macd.bull?'bull':'bear';
-      const ind=[rsi<40||rsi>60,macd.bull,bb.pos!=='mid',volR>150].filter(Boolean).length;
-      const conf=Math.min(98,Math.round(35+(ind*18)+(volR>200?8:0)));
+      const ind=[rsi<40||rsi>60,macd.bull,bb.pos!=='mid'].filter(Boolean).length;
+      const conf=Math.min(98,Math.round(35+(ind*20)));
       if(conf>70&&ind>=2){
         const ep=closes[i+1],pct=dir==='bull'?(ep-closes[i])/closes[i]:(closes[i]-ep)/closes[i];
         const odds=2.5,kf=useKelly?kellyF(conf,odds):0;
@@ -665,22 +653,25 @@ async function runBacktest(){
       <div class="pn" style="text-align:center"><div class="smv bc">${n}</div><div class="sml">Signals</div></div>
     </div>`;
     if(S.btChart)S.btChart.destroy();
-    const samp=equity.filter((_,i)=>i%3===0);
+    const samp=equity.filter((_,i)=>i%2===0);
     S.btChart=new Chart(document.getElementById('btC'),{type:'line',data:{labels:samp.map((_,i)=>i),datasets:[{data:samp,borderColor:total>=0?'#22c55e':'#e84040',borderWidth:1.5,fill:true,backgroundColor:total>=0?'rgba(34,197,94,.05)':'rgba(232,64,64,.05)',pointRadius:0,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{ticks:{color:'#4a5568',font:{size:9},callback:v=>'$'+v},grid:{color:'rgba(255,255,255,.02)'}}}}});
   }catch(e){stat.textContent='Error: '+e.message;}
 }
 
 async function init(){
+  // Load prices first — fast
   await fetchPrices();
   calcKelly();
   renderTail();
-  await scanAll();
-  renderTrades();
   updateDash();
+  renderTrades();
+  // Scan signals after — slower but won't block the page
+  setTimeout(()=>scanAll(),1000);
 }
 init();
+// Refresh prices every 60s, signals every 10 min
 setInterval(fetchPrices,60000);
-setInterval(scanAll,300000);
+setInterval(scanAll,600000);
 setInterval(updateDash,15000);
 </script>
 </body>
