@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Candlepoint Workbench — live charts, watchlist, scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b1622; --ink-2:#11202f; --panel:#0e1b29; --panel-2:#0c1826;
+    --line:rgba(255,255,255,.08);
+    --text:#e8edf2; --muted:#8fa2b3;
+    --up:#19c37d; --down:#e5484d; --amber:#f5b841; --blue:#4a9fd8;
+    --radius:10px; font-size:15px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--ink);color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--ink-2);border-radius:4px}
+
+  /* ---------- ticker tape ---------- */
+  .tape{background:#060d15;border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap;
+    font-family:'IBM Plex Mono',monospace;font-size:.76rem;padding:.4rem 0;min-height:1.9rem}
+  .tape-track{display:inline-block;animation:tape 48s linear infinite}
+  @media (prefers-reduced-motion:reduce){.tape-track{animation:none}}
+  @keyframes tape{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .tape span{margin:0 1.3rem;color:var(--muted)}
+  .tape b{color:var(--text);font-weight:500;margin-right:.4rem}
+  .u{color:var(--up);font-style:normal}.d{color:var(--down);font-style:normal}
+
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:50;background:rgba(11,22,34,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;gap:1rem;padding:.65rem 1.2rem;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:.5rem;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.08rem;letter-spacing:-.01em}
+  .search{display:flex;align-items:center;background:var(--ink-2);border:1px solid var(--line);border-radius:8px;overflow:hidden;width:300px}
+  .search:focus-within{border-color:rgba(25,195,125,.5)}
+  .search input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:.88rem;padding:.5rem .8rem;text-transform:uppercase;min-width:0}
+  .search input::placeholder{color:var(--muted);text-transform:none}
+  .search .go{padding:.5rem .85rem;color:#04140c;background:var(--up);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:600}
+  .tabs{display:flex;gap:.2rem;background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:.2rem}
+  .tabs button{padding:.42rem .95rem;border-radius:6px;font-size:.85rem;font-weight:500;color:var(--muted)}
+  .tabs button.on{background:var(--panel);color:var(--up)}
+  .right{margin-left:auto;display:flex;gap:.6rem;align-items:center}
+  .status{font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:.28rem .6rem;border-radius:6px}
+  .status.demo{background:rgba(245,184,65,.15);color:var(--amber)}
+  .status.live{background:rgba(25,195,125,.15);color:var(--up)}
+  .status.busy{background:rgba(74,159,216,.15);color:var(--blue)}
+  .btn{display:inline-flex;align-items:center;gap:.45rem;padding:.5rem 1rem;border-radius:8px;font-weight:600;font-size:.84rem}
+  .btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .btn-ghost{border:1px solid var(--line)} .btn-ghost:hover{background:var(--ink-2)}
+  .btn-up{background:var(--up);color:#04140c}
+  .btn-sm{padding:.32rem .7rem;font-size:.76rem;border-radius:6px}
+
+  /* ---------- key gate ---------- */
+  .gate{padding:.8rem 1.2rem 0}
+  .gate-card{background:var(--panel);border:1px solid rgba(245,184,65,.35);border-radius:var(--radius);
+    padding:.85rem 1.1rem;display:flex;gap:.9rem;align-items:center;flex-wrap:wrap;font-size:.85rem}
+  .gate-card.ok{border-color:rgba(25,195,125,.3)}
+  .gate-card p{color:var(--muted);flex:1;min-width:240px;line-height:1.5}
+  .gate-card p b{color:var(--text)}
+  .gate-card a{color:var(--amber);border-bottom:1px dashed var(--amber)}
+  .gate-card input{background:var(--ink-2);border:1px solid var(--line);border-radius:8px;color:var(--text);
+    font-family:'IBM Plex Mono',monospace;font-size:.82rem;padding:.5rem .75rem;width:260px;outline:none}
+  .gate-card input:focus{border-color:rgba(25,195,125,.5)}
+
+  /* ---------- app layout ---------- */
+  .app{display:grid;grid-template-columns:250px 1fr;gap:1rem;padding:1rem 1.2rem 2rem;align-items:start}
+
+  /* ---------- watchlist ---------- */
+  .wl{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;position:sticky;top:64px}
+  .wl-head{display:flex;align-items:center;justify-content:space-between;padding:.7rem .9rem;border-bottom:1px solid var(--line)}
+  .wl-head h4{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .wl-head button{color:var(--muted);font-size:.72rem;font-family:'IBM Plex Mono',monospace}
+  .wl-head button:hover{color:var(--up)}
+  .wl-add{display:flex;border-bottom:1px solid var(--line)}
+  .wl-add input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'IBM Plex Mono',monospace;
+    font-size:.8rem;padding:.55rem .9rem;text-transform:uppercase;min-width:0}
+  .wl-add input::placeholder{color:var(--muted);text-transform:none;font-family:'Inter',sans-serif}
+  .wl-add button{padding:0 .9rem;color:var(--up);font-size:1.1rem}
+  .wl-list{max-height:56vh;overflow-y:auto}
+  .wl-row{display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+  .wl-row:hover{background:var(--ink-2)}
+  .wl-row.on{background:var(--ink-2);box-shadow:inset 3px 0 0 var(--up)}
+  .wl-sym{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.85rem;width:56px}
+  .wl-px{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--muted);margin-left:auto;text-align:right}
+  .wl-px b{display:block;color:var(--text);font-weight:500}
+  .wl-x{color:var(--muted);opacity:0;font-size:.85rem;padding:.1rem .25rem}
+  .wl-row:hover .wl-x{opacity:.7}
+  .wl-x:hover{color:var(--down);opacity:1}
+  .wl-foot{padding:.55rem .9rem;font-size:.7rem;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+  /* ---------- views ---------- */
+  .view{display:none}.view.on{display:block}
+
+  /* ---------- terminal / chart ---------- */
+  .terminal{background:linear-gradient(180deg,#0d1a28,#0a1420);border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 30px 70px rgba(0,0,0,.45);overflow:hidden;position:relative}
+  .term-head{display:flex;align-items:center;gap:.9rem;padding:.65rem 1rem;border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;font-size:.8rem;flex-wrap:wrap}
+  .sym{font-weight:600;font-size:.95rem}
+  .name{color:var(--muted);font-size:.7rem;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .px{font-weight:600;color:var(--muted)}
+  .tf{margin-left:auto;display:flex;gap:.2rem}
+  .tf button{color:var(--muted);padding:.28rem .55rem;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:.74rem}
+  .tf button:hover{color:var(--text)} .tf button.on{background:var(--ink-2);color:var(--up)}
+  .ind-bar{display:flex;gap:.3rem;padding:.5rem 1rem;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .ind-bar label{display:inline-flex;align-items:center;gap:.35rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;
+    color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:.28rem .6rem;cursor:pointer;user-select:none}
+  .ind-bar label:hover{color:var(--text)}
+  .ind-bar input{accent-color:var(--up)}
+  .ind-bar label.c1{border-bottom:2px solid var(--amber)}
+  .ind-bar label.c2{border-bottom:2px solid var(--blue)}
+  .ind-bar label.c3{border-bottom:2px solid #b48ce0}
+  canvas{display:block;width:100%}
+  #chMain{height:330px}
+  #chRSI,#chMACD{height:100px;border-top:1px solid var(--line)}
+  .pane-hide{display:none!important}
+  .term-foot{display:flex;gap:1.2rem;padding:.55rem 1rem;border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);flex-wrap:wrap}
+  .term-foot b{color:var(--text);font-weight:500}
+  .overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(10,20,32,.85);font-family:'IBM Plex Mono',monospace;font-size:.85rem;color:var(--muted);
+    text-align:center;padding:2rem;z-index:5}
+  .overlay.show{display:flex}
+  .overlay .msg{max-width:26rem;line-height:1.6}
+  .spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--up);border-radius:50%;
+    animation:spin .8s linear infinite;margin:0 auto 1rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- dashboard ---------- */
+  .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem;margin-bottom:.9rem}
+  .mini{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:.7rem .8rem;cursor:pointer}
+  .mini:hover{border-color:rgba(25,195,125,.35)}
+  .mini-top{display:flex;justify-content:space-between;align-items:baseline;font-family:'IBM Plex Mono',monospace;margin-bottom:.3rem}
+  .mini-top b{font-size:.85rem}
+  .mini-top span{font-size:.72rem}
+  .mini canvas{height:56px}
+  .dash-two{display:grid;grid-template-columns:1.1fr 1fr;gap:.9rem}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:.9rem 1rem}
+  .card h4{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin-bottom:.7rem;display:flex;justify-content:space-between;align-items:center}
+  .card h4 button{color:var(--up);font-size:.68rem;letter-spacing:0;text-transform:none}
+  .heat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .cell{aspect-ratio:1.5;border-radius:5px;display:flex;flex-direction:column;justify-content:space-between;
+    padding:.4rem .5rem;font-family:'IBM Plex Mono',monospace;color:#fff;background:#3a4a58}
+  .cell b{font-size:.68rem;font-weight:600}.cell span{font-size:.58rem;opacity:.9}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th{font-family:'IBM Plex Mono',monospace;font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);text-align:left;padding:.35rem .4rem;border-bottom:1px solid var(--line);font-weight:600}
+  td{padding:.45rem .4rem;border-bottom:1px solid rgba(255,255,255,.04);font-family:'IBM Plex Mono',monospace;font-size:.78rem}
+  tr.click{cursor:pointer} tr.click:hover td{background:var(--ink-2)}
+  .dash-note{margin-top:.8rem;font-size:.75rem;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+  /* ---------- scanner ---------- */
+  .scan-controls{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;margin-bottom:.9rem}
+  .scan-controls h4{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.7rem}
+  .conds{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.9rem}
+  .conds label{display:inline-flex;align-items:center;gap:.4rem;font-family:'IBM Plex Mono',monospace;font-size:.74rem;
+    color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:.35rem .7rem;cursor:pointer}
+  .conds input{accent-color:var(--up)}
+  .conds label:has(input:checked){color:var(--up);border-color:rgba(25,195,125,.4)}
+  .scan-note{font-size:.75rem;color:var(--muted);margin-top:.6rem;line-height:1.5}
+  .pass{color:var(--up)} .fail{color:var(--muted);opacity:.55}
+  .prog{height:4px;background:var(--ink-2);border-radius:2px;overflow:hidden;margin-top:.7rem;display:none}
+  .prog.show{display:block}
+  .prog i{display:block;height:100%;background:var(--up);width:0%;transition:width .4s}
+
+  footer{border-top:1px solid var(--line);padding:1.1rem 1.2rem;display:flex;justify-content:space-between;gap:1rem;
+    flex-wrap:wrap;color:var(--muted);font-size:.75rem}
+  #qNote{font-family:'IBM Plex Mono',monospace}
+
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    .wl{position:static}
+    .wl-list{max-height:220px}
+    .dash-grid{grid-template-columns:repeat(2,1fr)}
+    .dash-two{grid-template-columns:1fr}
+    .search{width:100%;order:5}
+  }
+</style>
+</head>
+<body>
+
+<div class="tape" aria-label="Market ticker"><div class="tape-track" id="tape"><span style="color:var(--muted)">Loading…</span></div></div>
+
+<header>
+  <div class="bar">
+    <a class="logo" href="#">
+      <svg width="24" height="24" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <rect x="3" y="10" width="4" height="9" rx="1" fill="#e5484d"/><rect x="4.6" y="6" width="0.8" height="16" fill="#e5484d"/>
+        <rect x="11" y="5" width="4" height="11" rx="1" fill="#19c37d"/><rect x="12.6" y="2" width="0.8" height="17" fill="#19c37d"/>
+        <rect x="19" y="8" width="4" height="8" rx="1" fill="#19c37d"/><rect x="20.6" y="5" width="0.8" height="16" fill="#19c37d"/>
+      </svg>
+      Candlepoint
+    </a>
+    <form class="search" id="searchForm" role="search">
+      <input type="text" id="symInput" placeholder="Symbol — AAPL, SPY…" aria-label="Symbol search" autocomplete="off">
+      <button class="go" type="submit">CHART</button>
+    </form>
+    <div class="tabs" role="tablist">
+      <button class="on" data-view="chart" role="tab">Chart</button>
+      <button data-view="dash" role="tab">Dashboard</button>
+      <button data-view="scan" role="tab">Scanner</button>
+    </div>
+    <div class="right">
+      <span class="status demo" id="status">DEMO</span>
+      <button class="btn btn-ghost btn-sm" id="keyBtn">API key</button>
+    </div>
+  </div>
+</header>
+
+<div class="gate" id="gate">
+  <div class="gate-card" id="gateCard">
+    <p id="gateMsg"><b>Connect live data (free):</b> get a key at
+      <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a>,
+      paste it here. Stored only in this browser.</p>
+    <input type="text" id="keyInput" placeholder="Paste Twelve Data API key" aria-label="API key">
+    <button class="btn btn-up btn-sm" id="saveKey">Connect</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ============ watchlist ============ -->
+  <aside class="wl">
+    <div class="wl-head"><h4>Watchlist</h4><button id="wlRefresh" title="Refresh quotes">↻ refresh</button></div>
+    <form class="wl-add" id="wlForm">
+      <input type="text" id="wlInput" placeholder="Add symbol…" autocomplete="off">
+      <button type="submit" aria-label="Add to watchlist">＋</button>
+    </form>
+    <div class="wl-list" id="wlList"></div>
+    <div class="wl-foot" id="wlFoot">click a symbol to chart it</div>
+  </aside>
+
+  <main>
+    <!-- ============ CHART VIEW ============ -->
+    <section class="view on" id="view-chart">
+      <div class="terminal">
+        <div class="term-head">
+          <span class="sym" id="sym">AAPL</span>
+          <span class="name" id="symName">—</span>
+          <span class="px" id="px">—</span>
+          <button class="btn-sm btn-ghost btn" id="wlAddCur" title="Add to watchlist" style="font-size:.68rem">＋ watch</button>
+          <div class="tf" id="tfBar">
+            <button data-tf="1D">1D</button><button data-tf="1W">1W</button>
+            <button data-tf="1M">1M</button><button data-tf="1Y" class="on">1Y</button><button data-tf="5Y">5Y</button>
+          </div>
+        </div>
+        <div class="ind-bar" id="indBar">
+          <label class="c1"><input type="checkbox" data-ind="sma20" checked>SMA 20</label>
+          <label class="c2"><input type="checkbox" data-ind="sma50" checked>SMA 50</label>
+          <label class="c3"><input type="checkbox" data-ind="bb">Bollinger 20,2</label>
+          <label><input type="checkbox" data-ind="vol" checked>Volume</label>
+          <label><input type="checkbox" data-ind="rsi" checked>RSI 14</label>
+          <label><input type="checkbox" data-ind="macd" checked>MACD 12,26,9</label>
+        </div>
+        <canvas id="chMain" width="1400" height="660"></canvas>
+        <canvas id="chRSI" width="1400" height="200"></canvas>
+        <canvas id="chMACD" width="1400" height="200"></canvas>
+        <div class="term-foot">
+          <span>O <b id="fO">—</b></span><span>H <b id="fH">—</b></span>
+          <span>L <b id="fL">—</b></span><span>C <b id="fC">—</b></span>
+          <span>VOL <b id="fV">—</b></span>
+          <span>RSI <b id="fRSI">—</b></span>
+          <span style="margin-left:auto" id="fNote">demo data</span>
+        </div>
+        <div class="overlay" id="overlay"><div><div class="spin" id="spinner"></div><div class="msg" id="overlayMsg">Loading…</div></div></div>
+      </div>
+    </section>
+
+    <!-- ============ DASHBOARD VIEW ============ -->
+    <section class="view" id="view-dash">
+      <div class="dash-grid" id="dashMinis"></div>
+      <div class="dash-two">
+        <div class="card">
+          <h4>Watchlist movers <button id="moversBtn">refresh ↻</button></h4>
+          <table><thead><tr><th>Sym</th><th>Last</th><th>Chg%</th><th>Range (day)</th></tr></thead>
+          <tbody id="moversBody"><tr><td colspan="4" style="color:var(--muted)">No quotes yet — refresh the watchlist.</td></tr></tbody></table>
+        </div>
+        <div class="card">
+          <h4>Sector ETFs · daily <button id="heatBtn">load live ↻</button></h4>
+          <div class="heat-grid" id="heat"></div>
+        </div>
+      </div>
+      <p class="dash-note" id="dashNote">Dashboard loads on demand to conserve your free-tier quota (8 requests/min, 800/day).</p>
+    </section>
+
+    <!-- ============ SCANNER VIEW ============ -->
+    <section class="view" id="view-scan">
+      <div class="scan-controls">
+        <h4>Scan your watchlist — daily bars</h4>
+        <div class="conds">
+          <label><input type="checkbox" data-c="rsiOver" >RSI &gt; 70 (overbought)</label>
+          <label><input type="checkbox" data-c="rsiUnder" checked>RSI &lt; 30 (oversold)</label>
+          <label><input type="checkbox" data-c="aboveSMA50" checked>Close &gt; SMA 50</label>
+          <label><input type="checkbox" data-c="belowSMA50">Close &lt; SMA 50</label>
+          <label><input type="checkbox" data-c="gap2">Day change &gt; +2%</label>
+          <label><input type="checkbox" data-c="drop2">Day change &lt; −2%</label>
+          <label><input type="checkbox" data-c="macdBull">MACD cross ↑ (last 3 bars)</label>
+        </div>
+        <button class="btn btn-up btn-sm" id="scanBtn">Run scan</button>
+        <div class="prog" id="scanProg"><i></i></div>
+        <p class="scan-note">Scans the symbols in your watchlist (the free tier can't screen the whole market).
+        Each un-cached symbol costs one API request; the queue paces itself to stay under the rate limit, so big lists take a minute or two.</p>
+      </div>
+      <div class="card">
+        <h4>Results</h4>
+        <table><thead><tr><th>Sym</th><th>Close</th><th>Chg%</th><th>RSI 14</th><th>vs SMA50</th><th>MACD hist</th><th>Matches</th></tr></thead>
+        <tbody id="scanBody"><tr><td colspan="7" style="color:var(--muted)">Run a scan to see results.</td></tr></tbody></table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <span>© 2026 Candlepoint · data by Twelve Data (free tier; quotes may be delayed) · not investment advice</span>
+  <span id="qNote"></span>
+</footer>
+
+<script>
+'use strict';
+/* ================================================================
+   config / state
+================================================================ */
+const API='https://api.twelvedata.com';
+let apiKey=''; try{apiKey=localStorage.getItem('cp_key')||'';}catch(e){}
+let watchlist=['AAPL','MSFT','NVDA','TSLA','SPY'];
+try{const w=JSON.parse(localStorage.getItem('cp_wl')||'null');if(Array.isArray(w)&&w.length)watchlist=w;}catch(e){}
+let currentSym='AAPL',currentTF='1Y';
+let candles=[],quotes={},quoteTimer=null;
+const TF={'1D':{interval:'5min',outputsize:78},'1W':{interval:'30min',outputsize:70},
+          '1M':{interval:'1day',outputsize:23},'1Y':{interval:'1day',outputsize:252},
+          '5Y':{interval:'1week',outputsize:260}};
+const $=id=>document.getElementById(id);
+const fmt=(n,d=2)=>n==null||isNaN(n)?'—':Number(n).toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:d});
+const fmtVol=v=>{v=Number(v);if(!v)return'—';if(v>1e9)return(v/1e9).toFixed(1)+'B';if(v>1e6)return(v/1e6).toFixed(1)+'M';if(v>1e3)return(v/1e3).toFixed(1)+'K';return String(v)};
+function saveWL(){try{localStorage.setItem('cp_wl',JSON.stringify(watchlist));}catch(e){}}
+function setStatus(mode,msg){const el=$('status');el.className='status '+mode;el.textContent=msg;}
+
+/* ================================================================
+   rate-limited request queue  (Twelve Data free: 8 credits/min)
+================================================================ */
+const stamps=[];const queue=[];let pumping=false;
+function credit(n=1){const now=Date.now();while(stamps.length&&now-stamps[0]>62000)stamps.shift();return stamps.length+n<=7;}
+function qNote(){$('qNote').textContent=queue.length?`queued API calls: ${queue.length}`:'';}
+async function pump(){
+  if(pumping)return;pumping=true;
+  while(queue.length){
+    const now=Date.now();while(stamps.length&&now-stamps[0]>62000)stamps.shift();
+    if(stamps.length>=7){
+      setStatus('busy','WAITING · RATE');
+      await new Promise(r=>setTimeout(r,62000-(now-stamps[0])+300));
+      continue;
+    }
+    const job=queue.shift();qNote();
+    stamps.push(Date.now());
+    try{
+      const q=new URLSearchParams({...job.params,apikey:apiKey});
+      const r=await fetch(`${API}${job.path}?${q}`);
+      const j=await r.json();
+      if(j.status==='error'||j.code>=400){
+        if(/credit|rate/i.test(j.message||'')){stamps.push(Date.now(),Date.now(),Date.now());queue.unshift(job);qNote();continue;}
+        job.rej(new Error(j.message||'API error'));
+      }else job.res(j);
+    }catch(err){job.rej(err);}
+    if(apiKey)setStatus('live','LIVE');
+  }
+  pumping=false;qNote();
+}
+function td(path,params){return new Promise((res,rej)=>{queue.push({path,params,res,rej});qNote();pump();});}
+
+/* cache: time_series per symbol+interval, 5 min */
+const cache={};
+async function series(sym,interval,outputsize){
+  const k=sym+'_'+interval+'_'+outputsize;
+  if(cache[k]&&Date.now()-cache[k].t<5*60*1000)return cache[k].data;
+  const j=await td('/time_series',{symbol:sym,interval,outputsize});
+  if(!j.values||!j.values.length)throw new Error('No data for '+sym);
+  const data={meta:j.meta,c:j.values.reverse().map(v=>({o:+v.open,h:+v.high,l:+v.low,c:+v.close,v:+v.volume||0}))};
+  cache[k]=({t:Date.now(),data});
+  return data;
+}
+
+/* ================================================================
+   indicator math
+================================================================ */
+function smaArr(vals,n){const out=new Array(vals.length).fill(null);let s=0;
+  for(let i=0;i<vals.length;i++){s+=vals[i];if(i>=n)s-=vals[i-n];if(i>=n-1)out[i]=s/n;}return out;}
+function emaArr(vals,n){const out=new Array(vals.length).fill(null);const k=2/(n+1);let e=null;
+  for(let i=0;i<vals.length;i++){e=e===null?vals[i]:vals[i]*k+e*(1-k);out[i]=i<n-1?null:e;}return out;}
+function rsiArr(closes,n=14){const out=new Array(closes.length).fill(null);
+  if(closes.length<n+1)return out;
+  let g=0,l=0;
+  for(let i=1;i<=n;i++){const d=closes[i]-closes[i-1];if(d>0)g+=d;else l-=d;}
+  let ag=g/n,al=l/n;out[n]=al===0?100:100-100/(1+ag/al);
+  for(let i=n+1;i<closes.length;i++){
+    const d=closes[i]-closes[i-1];
+    ag=(ag*(n-1)+Math.max(d,0))/n;al=(al*(n-1)+Math.max(-d,0))/n;
+    out[i]=al===0?100:100-100/(1+ag/al);
+  }return out;}
+function macdArr(closes){const f=emaArr(closes,12),s=emaArr(closes,26);
+  const line=closes.map((_,i)=>f[i]!=null&&s[i]!=null?f[i]-s[i]:null);
+  const firstIdx=line.findIndex(v=>v!=null);
+  const valid=line.slice(firstIdx);
+  const sigValid=emaArr(valid,9);
+  const sig=new Array(closes.length).fill(null);
+  for(let i=0;i<sigValid.length;i++)sig[firstIdx+i]=sigValid[i];
+  const hist=line.map((v,i)=>v!=null&&sig[i]!=null?v-sig[i]:null);
+  return{line,sig,hist};}
+function stdevArr(vals,n){const out=new Array(vals.length).fill(null);
+  for(let i=n-1;i<vals.length;i++){let m=0;for(let k=i-n+1;k<=i;k++)m+=vals[k];m/=n;
+    let v=0;for(let k=i-n+1;k<=i;k++)v+=(vals[k]-m)**2;out[i]=Math.sqrt(v/n);}return out;}
+
+/* ================================================================
+   chart rendering
+================================================================ */
+const mainCv=$('chMain'),rsiCv=$('chRSI'),macdCv=$('chMACD');
+const PADR=110;
+const ind={sma20:true,sma50:true,bb:false,vol:true,rsi:true,macd:true};
+
+function drawAll(){
+  drawMain();
+  rsiCv.classList.toggle('pane-hide',!ind.rsi);
+  macdCv.classList.toggle('pane-hide',!ind.macd);
+  if(ind.rsi)drawRSI();
+  if(ind.macd)drawMACD();
+}
+function xPos(i,n,W){const cw=(W-PADR)/n;return i*cw+cw/2;}
+function drawLine(ctx,arr,y,n,W,color,width=2.5){
+  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();let started=false;
+  for(let i=0;i<n;i++){if(arr[i]==null)continue;const x=xPos(i,n,W),yy=y(arr[i]);
+    started?ctx.lineTo(x,yy):ctx.moveTo(x,yy);started=true;}
+  ctx.stroke();
+}
+function drawMain(){
+  const ctx=mainCv.getContext('2d'),W=mainCv.width,H=mainCv.height;
+  ctx.clearRect(0,0,W,H);
+  const n=candles.length;if(!n)return;
+  const closes=candles.map(c=>c.c);
+  const s20=ind.sma20?smaArr(closes,20):null;
+  const s50=ind.sma50?smaArr(closes,50):null;
+  let bbU=null,bbL=null,bbM=null;
+  if(ind.bb){bbM=smaArr(closes,20);const sd=stdevArr(closes,20);
+    bbU=bbM.map((m,i)=>m!=null?m+2*sd[i]:null);bbL=bbM.map((m,i)=>m!=null?m-2*sd[i]:null);}
+  let lo=Math.min(...candles.map(c=>c.l)),hi=Math.max(...candles.map(c=>c.h));
+  if(bbU)for(const v of bbU)if(v!=null&&v>hi)hi=v;
+  if(bbL)for(const v of bbL)if(v!=null&&v<lo)lo=v;
+  const span=(hi-lo)||1,padB=ind.vol?100:30;
+  const y=v=>16+(hi-v)/span*(H-padB-32);
+  ctx.font='19px IBM Plex Mono';ctx.fillStyle='rgba(143,162,179,.7)';ctx.strokeStyle='rgba(255,255,255,.05)';
+  for(let g=0;g<5;g++){const val=lo+span*g/4,yy=y(val);
+    ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W-PADR,yy);ctx.stroke();
+    ctx.fillText(fmt(val,val>1000?0:2),W-PADR+10,yy+6);}
+  const cw=(W-PADR)/n,bw=Math.max(2,cw*.55);
+  if(ind.vol){const vmax=Math.max(...candles.map(c=>c.v))||1;
+    candles.forEach((c,i)=>{const x=xPos(i,n,W);
+      ctx.fillStyle=c.c>=c.o?'rgba(25,195,125,.22)':'rgba(229,72,77,.22)';
+      const vh=c.v/vmax*66;ctx.fillRect(x-bw/2,H-18-vh,bw,vh);});}
+  if(ind.bb&&bbU){
+    ctx.fillStyle='rgba(180,140,224,.08)';ctx.beginPath();let started=false;
+    for(let i=0;i<n;i++){if(bbU[i]==null)continue;const x=xPos(i,n,W);
+      started?ctx.lineTo(x,y(bbU[i])):ctx.moveTo(x,y(bbU[i]));started=true;}
+    for(let i=n-1;i>=0;i--){if(bbL[i]==null)continue;ctx.lineTo(xPos(i,n,W),y(bbL[i]));}
+    ctx.closePath();ctx.fill();
+    drawLine(ctx,bbU,y,n,W,'rgba(180,140,224,.55)',1.5);
+    drawLine(ctx,bbL,y,n,W,'rgba(180,140,224,.55)',1.5);
+  }
+  if(s20)drawLine(ctx,s20,y,n,W,'rgba(245,184,65,.95)');
+  if(s50)drawLine(ctx,s50,y,n,W,'rgba(74,159,216,.95)');
+  candles.forEach((c,i)=>{const x=xPos(i,n,W),up=c.c>=c.o;
+    ctx.strokeStyle=ctx.fillStyle=up?'#19c37d':'#e5484d';
+    ctx.lineWidth=Math.min(2,bw/2);
+    ctx.beginPath();ctx.moveTo(x,y(c.h));ctx.lineTo(x,y(c.l));ctx.stroke();
+    const top=y(Math.max(c.o,c.c)),hgt=Math.max(2,Math.abs(y(c.o)-y(c.c)));
+    ctx.fillRect(x-bw/2,top,bw,hgt);});
+  const last=closes[n-1],yl=y(last);
+  ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(232,237,242,.5)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(0,yl);ctx.lineTo(W-PADR,yl);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=candles[n-1].c>=candles[n-1].o?'#19c37d':'#e5484d';
+  ctx.fillRect(W-PADR+2,yl-15,PADR-4,30);
+  ctx.fillStyle='#04140c';ctx.font='600 18px IBM Plex Mono';
+  ctx.fillText(fmt(last,last>1000?0:2),W-PADR+9,yl+6);
+}
+function drawRSI(){
+  const ctx=rsiCv.getContext('2d'),W=rsiCv.width,H=rsiCv.height;
+  ctx.clearRect(0,0,W,H);
+  const n=candles.length;if(!n)return;
+  const r=rsiArr(candles.map(c=>c.c));
+  const y=v=>10+(100-v)/100*(H-20);
+  ctx.font='17px IBM Plex Mono';
+  [[70,'rgba(229,72,77,.35)'],[30,'rgba(25,195,125,.35)']].forEach(([lvl,col])=>{
+    ctx.strokeStyle=col;ctx.setLineDash([4,5]);ctx.beginPath();
+    ctx.moveTo(0,y(lvl));ctx.lineTo(W-PADR,y(lvl));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(143,162,179,.6)';ctx.fillText(lvl,W-PADR+10,y(lvl)+5);});
+  drawLine(ctx,r,y,n,W,'rgba(245,184,65,.9)',2);
+  ctx.fillStyle='rgba(143,162,179,.75)';ctx.fillText('RSI 14',10,22);
+  const last=r[n-1];$('fRSI').textContent=last!=null?last.toFixed(1):'—';
+}
+function drawMACD(){
+  const ctx=macdCv.getContext('2d'),W=macdCv.width,H=macdCv.height;
+  ctx.clearRect(0,0,W,H);
+  const n=candles.length;if(!n)return;
+  const m=macdArr(candles.map(c=>c.c));
+  const all=[...m.line,...m.sig,...m.hist].filter(v=>v!=null);
+  if(!all.length)return;
+  const hi=Math.max(...all.map(Math.abs))||1;
+  const y=v=>H/2-(v/hi)*(H/2-12);
+  ctx.strokeStyle='rgba(255,255,255,.08)';ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W-PADR,H/2);ctx.stroke();
+  const cw=(W-PADR)/n,bw=Math.max(1.5,cw*.5);
+  m.hist.forEach((v,i)=>{if(v==null)return;const x=xPos(i,n,W);
+    ctx.fillStyle=v>=0?'rgba(25,195,125,.5)':'rgba(229,72,77,.5)';
+    ctx.fillRect(x-bw/2,Math.min(y(v),H/2),bw,Math.abs(y(v)-H/2));});
+  drawLine(ctx,m.line,y,n,W,'rgba(74,159,216,.95)',2);
+  drawLine(ctx,m.sig,y,n,W,'rgba(245,184,65,.9)',2);
+  ctx.font='17px IBM Plex Mono';ctx.fillStyle='rgba(143,162,179,.75)';ctx.fillText('MACD 12,26,9',10,22);
+}
+
+/* ================================================================
+   demo data
+================================================================ */
+function demoCandles(seedStr='AAPL',n=120){
+  let seed=0;for(const ch of seedStr)seed=(seed*31+ch.charCodeAt(0))%997;
+  let p=40+(seed%400),out=[];
+  const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  for(let i=0;i<n;i++){const drift=Math.sin(i/11+seed)*p*.006+(rnd()-.47)*p*.02;
+    const o=p,c=p+drift;
+    out.push({o,c,h:Math.max(o,c)+rnd()*p*.008,l:Math.min(o,c)-rnd()*p*.008,v:1e7+rnd()*8e7});p=c;}
+  return out;
+}
+
+/* ================================================================
+   chart loading
+================================================================ */
+function overlay(msg,spin=true){$('overlay').classList.add('show');$('overlayMsg').textContent=msg;$('spinner').style.display=spin?'block':'none';}
+function hideOverlay(){$('overlay').classList.remove('show');}
+function errMsg(err,sym){
+  const m=(err.message||'').toLowerCase();
+  if(m.includes('rate')||m.includes('credit'))return'Rate limit — the queue will retry automatically.';
+  if(m.includes('key'))return'API key rejected — check it and reconnect.';
+  if(m.includes('no data')||m.includes('symbol')||m.includes('not found'))return`No data for "${sym}". US stocks & ETFs only on the free tier.`;
+  if(m.includes('fetch'))return'Network blocked — download the file and open it directly in your browser.';
+  return'Error: '+err.message;
+}
+async function loadSymbol(sym,tf){
+  sym=sym.toUpperCase().trim();if(!sym)return;
+  currentSym=sym;currentTF=tf;
+  document.querySelectorAll('#tfBar button').forEach(b=>b.classList.toggle('on',b.dataset.tf===tf));
+  renderWL();
+  $('sym').textContent=sym;
+  if(!apiKey){
+    candles=demoCandles(sym+tf);drawAll();updateFoot();
+    $('symName').textContent='demo — connect API key';$('fNote').textContent='demo data';
+    return;
+  }
+  overlay(`Loading ${sym} · ${tf}…`);
+  try{
+    const cfg=TF[tf];
+    const d=await series(sym,cfg.interval,cfg.outputsize);
+    candles=d.c;drawAll();updateFoot();
+    $('symName').textContent=d.meta.exchange||'';
+    $('fNote').textContent='live · Twelve Data';
+    hideOverlay();
+    refreshQuote();
+    if(quoteTimer)clearInterval(quoteTimer);
+    quoteTimer=setInterval(refreshQuote,90000);
+  }catch(err){overlay(errMsg(err,sym),false);setTimeout(hideOverlay,4500);}
+}
+function updateFoot(){
+  if(!candles.length)return;
+  const last=candles[candles.length-1];
+  $('fO').textContent=fmt(last.o);$('fH').textContent=fmt(last.h);
+  $('fL').textContent=fmt(last.l);$('fC').textContent=fmt(last.c);
+  $('fV').textContent=fmtVol(last.v);
+}
+async function refreshQuote(){
+  if(!apiKey)return;
+  try{
+    const q=await td('/quote',{symbol:currentSym});
+    applyQuote(currentSym,q);
+    const chg=+q.percent_change,el=$('px');
+    el.textContent=`${fmt(+q.close)} ${chg>=0?'▲':'▼'} ${Math.abs(chg).toFixed(2)}%`;
+    el.style.color=chg>=0?'var(--up)':'var(--down)';
+    if(q.name)$('symName').textContent=q.name;
+  }catch(e){}
+}
+
+/* ================================================================
+   watchlist
+================================================================ */
+function applyQuote(sym,q){if(q&&q.close!=null)quotes[sym]={c:+q.close,p:+q.percent_change,h:+q.high,l:+q.low,name:q.name||''};}
+function renderWL(){
+  $('wlList').innerHTML=watchlist.map(s=>{
+    const q=quotes[s];
+    const px=q?`<b>${fmt(q.c)}</b><span class="${q.p>=0?'u':'d'}">${q.p>=0?'+':''}${q.p.toFixed(2)}%</span>`:'<b>—</b>';
+    return`<div class="wl-row${s===currentSym?' on':''}" data-sym="${s}">
+      <span class="wl-sym">${s}</span>
+      <span class="wl-px">${px}</span>
+      <button class="wl-x" data-x="${s}" title="Remove">✕</button></div>`;
+  }).join('');
+}
+async function refreshWLQuotes(){
+  if(!apiKey){$('wlFoot').textContent='connect API key for live quotes';return;}
+  if(!watchlist.length)return;
+  $('wlFoot').textContent='refreshing…';
+  try{
+    /* batch in groups of 6 to respect credits */
+    for(let i=0;i<watchlist.length;i+=6){
+      const grp=watchlist.slice(i,i+6);
+      const j=await td('/quote',{symbol:grp.join(',')});
+      grp.forEach(s=>{const q=grp.length===1?j:(j[s]||null);applyQuote(s,q);});
+      renderWL();renderMovers();
+    }
+    $('wlFoot').textContent='updated '+new Date().toLocaleTimeString();
+  }catch(e){$('wlFoot').textContent='quote refresh failed';}
+}
+$('wlList').addEventListener('click',e=>{
+  const x=e.target.closest('[data-x]');
+  if(x){watchlist=watchlist.filter(s=>s!==x.dataset.x);saveWL();renderWL();renderMovers();return;}
+  const row=e.target.closest('.wl-row');
+  if(row){showView('chart');loadSymbol(row.dataset.sym,currentTF);}
+});
+$('wlForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const s=$('wlInput').value.toUpperCase().trim();
+  if(s&&!watchlist.includes(s)){watchlist.push(s);saveWL();renderWL();refreshWLQuotes();}
+  $('wlInput').value='';
+});
+$('wlRefresh').addEventListener('click',refreshWLQuotes);
+$('wlAddCur').addEventListener('click',()=>{
+  if(!watchlist.includes(currentSym)){watchlist.push(currentSym);saveWL();renderWL();refreshWLQuotes();}
+});
+
+/* ================================================================
+   ticker tape
+================================================================ */
+const TAPE_SYMS=['SPY','QQQ','AAPL','NVDA','TSLA','MSFT'];
+function renderTape(items){const seg=items.join('');$('tape').innerHTML=seg+seg;}
+async function loadTape(){
+  if(!apiKey){
+    renderTape([['SPY','612.07',0.41],['QQQ','540.66',0.58],['AAPL','231.48',1.12],
+      ['NVDA','148.92',-0.83],['TSLA','288.14',-1.92],['MSFT','512.30',0.64]]
+      .map(q=>`<span><b>${q[0]}</b>${q[1]} <i class="${q[2]>=0?'u':'d'}">${q[2]>=0?'+':''}${q[2]}%</i></span>`)
+      .concat(['<span style="color:var(--amber)">DEMO — connect an API key for live quotes</span>']));
+    return;
+  }
+  try{
+    const j=await td('/quote',{symbol:TAPE_SYMS.join(',')});
+    const items=TAPE_SYMS.map(s=>{const q=j[s];if(!q||!q.close)return'';applyQuote(s,q);
+      const c=+q.percent_change;
+      return`<span><b>${s}</b>${fmt(+q.close)} <i class="${c>=0?'u':'d'}">${c>=0?'+':''}${c.toFixed(2)}%</i></span>`;
+    }).filter(Boolean);
+    if(items.length)renderTape(items);
+    renderWL();renderMovers();
+  }catch(e){}
+}
+
+/* ================================================================
+   dashboard
+================================================================ */
+const DASH_SYMS=[['SPY','S&P 500'],['QQQ','Nasdaq 100'],['DIA','Dow 30'],['IWM','Russell 2000']];
+let dashLoaded=false;
+function miniCard(sym,label){return`<div class="mini" data-sym="${sym}">
+  <div class="mini-top"><b>${sym}</b><span id="mChg_${sym}" style="color:var(--muted)">—</span></div>
+  <canvas id="mCv_${sym}" width="400" height="112"></canvas>
+  <div style="font-size:.65rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:.25rem">${label}</div></div>`;}
+function drawMini(sym,closes){
+  const cv=$('mCv_'+sym);if(!cv)return;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const lo=Math.min(...closes),hi=Math.max(...closes),span=(hi-lo)||1;
+  const up=closes[closes.length-1]>=closes[0];
+  const col=up?'#19c37d':'#e5484d';
+  ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();
+  closes.forEach((c,i)=>{const x=i/(closes.length-1)*W,y=8+(hi-c)/span*(H-16);
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  ctx.stroke();
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+  ctx.fillStyle=up?'rgba(25,195,125,.1)':'rgba(229,72,77,.1)';ctx.fill();
+  const chg=(closes[closes.length-1]-closes[0])/closes[0]*100;
+  const el=$('mChg_'+sym);
+  el.textContent=(chg>=0?'+':'')+chg.toFixed(2)+'% / 30d';
+  el.style.color=chg>=0?'var(--up)':'var(--down)';
+}
+async function loadDash(){
+  $('dashMinis').innerHTML=DASH_SYMS.map(d=>miniCard(d[0],d[1])).join('');
+  if(!apiKey){
+    DASH_SYMS.forEach(d=>drawMini(d[0],demoCandles(d[0],30).map(c=>c.c)));
+    $('dashNote').textContent='Demo data — connect an API key for live index charts.';
+    return;
+  }
+  $('dashNote').textContent='Loading index charts through the rate-limit queue…';
+  for(const[sym]of DASH_SYMS){
+    try{const d=await series(sym,'1day',30);drawMini(sym,d.c.map(c=>c.c));}
+    catch(e){const el=$('mChg_'+sym);if(el)el.textContent='error';}
+  }
+  $('dashNote').textContent='Index charts: last 30 daily closes. Mini-charts and heatmap are cached for 5 minutes.';
+  renderMovers();
+}
+function renderMovers(){
+  const rows=watchlist.filter(s=>quotes[s]).sort((a,b)=>quotes[b].p-quotes[a].p);
+  if(!rows.length)return;
+  $('moversBody').innerHTML=rows.map(s=>{const q=quotes[s];
+    return`<tr class="click" data-sym="${s}"><td><b>${s}</b></td><td>${fmt(q.c)}</td>
+      <td class="${q.p>=0?'u':'d'}">${q.p>=0?'+':''}${q.p.toFixed(2)}%</td>
+      <td style="color:var(--muted)">${fmt(q.l)}–${fmt(q.h)}</td></tr>`;}).join('');
+}
+$('moversBtn').addEventListener('click',refreshWLQuotes);
+$('moversBody').addEventListener('click',e=>{
+  const r=e.target.closest('tr[data-sym]');
+  if(r){showView('chart');loadSymbol(r.dataset.sym,currentTF);}
+});
+/* heatmap */
+const SECTORS=[['XLK','Tech'],['XLF','Fin'],['XLE','Energy'],['XLV','Health'],['XLI','Indus'],['XLY','Discr'],
+  ['XLP','Staples'],['XLU','Util'],['XLB','Matls'],['XLRE','REIT'],['XLC','Comm'],['SMH','Semis']];
+function renderHeat(data){
+  $('heat').innerHTML=SECTORS.map(([s])=>{const v=data[s];
+    if(v==null)return`<div class="cell"><b>${s}</b><span>—</span></div>`;
+    const a=Math.min(1,Math.abs(v)/2);
+    const bg=v>=0?`rgba(17,138,91,${.4+a*.55})`:`rgba(200,55,60,${.4+a*.55})`;
+    return`<div class="cell" style="background:${bg}"><b>${s}</b><span>${v>0?'+':''}${v.toFixed(2)}%</span></div>`;}).join('');
+}
+renderHeat({});
+$('heatBtn').addEventListener('click',async()=>{
+  if(!apiKey){$('heatBtn').textContent='needs API key';return;}
+  $('heatBtn').textContent='loading…';
+  const out={};
+  try{
+    for(let i=0;i<SECTORS.length;i+=6){
+      const grp=SECTORS.slice(i,i+6).map(s=>s[0]);
+      const j=await td('/quote',{symbol:grp.join(',')});
+      grp.forEach(s=>{const q=grp.length===1?j:j[s];if(q&&q.percent_change!=null)out[s]=+q.percent_change;});
+      renderHeat(out);
+    }
+    $('heatBtn').textContent='refresh ↻';
+  }catch(e){$('heatBtn').textContent='retry ↻';}
+});
+
+/* ================================================================
+   scanner
+================================================================ */
+$('scanBtn').addEventListener('click',runScan);
+async function runScan(){
+  const conds=[...document.querySelectorAll('.conds input:checked')].map(i=>i.dataset.c);
+  if(!watchlist.length){$('scanBody').innerHTML='<tr><td colspan="7" style="color:var(--muted)">Watchlist is empty.</td></tr>';return;}
+  const prog=$('scanProg');prog.classList.add('show');prog.firstElementChild.style.width='0%';
+  $('scanBtn').disabled=true;$('scanBtn').textContent='Scanning…';
+  const rows=[];
+  for(let i=0;i<watchlist.length;i++){
+    const sym=watchlist[i];
+    try{
+      let closes;
+      if(apiKey){const d=await series(sym,'1day',80);closes=d.c.map(c=>c.c);}
+      else closes=demoCandles(sym,80).map(c=>c.c);
+      const n=closes.length;
+      const close=closes[n-1],prev=closes[n-2]||close;
+      const chg=(close-prev)/prev*100;
+      const rsi=rsiArr(closes)[n-1];
+      const s50=smaArr(closes,50)[n-1];
+      const m=macdArr(closes);
+      const h=m.hist;
+      const bullCross=(()=>{for(let k=n-3;k<n;k++){if(k>0&&h[k-1]!=null&&h[k]!=null&&h[k-1]<=0&&h[k]>0)return true;}return false;})();
+      const checks={
+        rsiOver:rsi!=null&&rsi>70, rsiUnder:rsi!=null&&rsi<30,
+        aboveSMA50:s50!=null&&close>s50, belowSMA50:s50!=null&&close<s50,
+        gap2:chg>2, drop2:chg<-2, macdBull:bullCross
+      };
+      const matched=conds.filter(c=>checks[c]);
+      rows.push({sym,close,chg,rsi,s50,hist:h[n-1],matched,pass:conds.length===0||matched.length>0});
+    }catch(e){rows.push({sym,err:errMsg(e,sym)});}
+    prog.firstElementChild.style.width=((i+1)/watchlist.length*100)+'%';
+    renderScan(rows,conds);
+  }
+  $('scanBtn').disabled=false;$('scanBtn').textContent='Run scan';
+  setTimeout(()=>prog.classList.remove('show'),800);
+}
+function renderScan(rows,conds){
+  const sorted=[...rows].sort((a,b)=>(b.pass&&b.matched?b.matched.length:0)-(a.pass&&a.matched?a.matched.length:0));
+  $('scanBody').innerHTML=sorted.map(r=>{
+    if(r.err)return`<tr><td><b>${r.sym}</b></td><td colspan="6" style="color:var(--down)">${r.err}</td></tr>`;
+    const cls=r.pass?'pass':'fail';
+    const vs=r.s50!=null?((r.close-r.s50)/r.s50*100):null;
+    return`<tr class="click ${cls}" data-sym="${r.sym}">
+      <td><b>${r.sym}</b></td><td>${fmt(r.close)}</td>
+      <td class="${r.chg>=0?'u':'d'}">${r.chg>=0?'+':''}${r.chg.toFixed(2)}%</td>
+      <td>${r.rsi!=null?r.rsi.toFixed(1):'—'}</td>
+      <td class="${vs!=null&&vs>=0?'u':'d'}">${vs!=null?(vs>=0?'+':'')+vs.toFixed(1)+'%':'—'}</td>
+      <td class="${r.hist!=null&&r.hist>=0?'u':'d'}">${r.hist!=null?r.hist.toFixed(2):'—'}</td>
+      <td style="color:var(--up)">${r.matched&&r.matched.length?r.matched.length+' ✓':'—'}</td></tr>`;
+  }).join('');
+}
+document.getElementById('scanBody').addEventListener('click',e=>{
+  const r=e.target.closest('tr[data-sym]');
+  if(r){showView('chart');loadSymbol(r.dataset.sym,currentTF);}
+});
+
+/* ================================================================
+   views / tabs
+================================================================ */
+function showView(v){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='view-'+v));
+  if(v==='dash'&&!dashLoaded){dashLoaded=true;loadDash();}
+}
+document.querySelector('.tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-view]');if(b)showView(b.dataset.view);
+});
+$('dashMinis')&&document.getElementById('dashMinis').addEventListener('click',e=>{
+  const m=e.target.closest('.mini');if(m){showView('chart');loadSymbol(m.dataset.sym,currentTF);}
+});
+
+/* ================================================================
+   indicator toggles
+================================================================ */
+$('indBar').addEventListener('change',e=>{
+  const i=e.target;if(!i.dataset.ind)return;
+  ind[i.dataset.ind]=i.checked;drawAll();
+});
+
+/* ================================================================
+   key handling & boot
+================================================================ */
+function applyKey(k){
+  apiKey=k.trim();
+  try{localStorage.setItem('cp_key',apiKey);}catch(e){}
+  if(apiKey){
+    setStatus('live','LIVE');
+    $('gateCard').classList.add('ok');
+    $('gateMsg').innerHTML='<b>Connected.</b> Free tier: 8 requests/min, 800/day — the built-in queue paces everything automatically.';
+    loadTape();loadSymbol(currentSym,currentTF);refreshWLQuotes();
+  }
+}
+$('saveKey').addEventListener('click',()=>applyKey($('keyInput').value));
+$('keyInput').addEventListener('keydown',e=>{if(e.key==='Enter')applyKey($('keyInput').value)});
+$('keyBtn').addEventListener('click',()=>{$('gate').scrollIntoView({behavior:'smooth'});$('keyInput').focus();});
+$('searchForm').addEventListener('submit',e=>{
+  e.preventDefault();const v=$('symInput').value;
+  if(v){showView('chart');loadSymbol(v,currentTF);}
+});
+$('tfBar').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(b)loadSymbol(currentSym,b.dataset.tf);
+});
+
+renderWL();
+if(apiKey){$('keyInput').value=apiKey;applyKey(apiKey);}
+else{setStatus('demo','DEMO');loadTape();loadSymbol('AAPL','1Y');}
+</script>
+</body>
+</html>
